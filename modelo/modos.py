@@ -1,50 +1,80 @@
+from __future__ import annotations
 import random
 from abc import ABC, abstractmethod
-
+from collections import deque
 
 class Modo(ABC):
+
     @abstractmethod
-    def actua(self, un_bicho, juego):
+    def actua(self, bicho, juego):
         pass
 
     @abstractmethod
-    def nombre(self):
+    def nombre(self) -> str:
         pass
 
+    def atacar(self, bicho, juego):
+        print(f'{bicho.nombre} ataca a {juego.personaje.nombre}.')
+        juego.personaje.recibir_danio(bicho.poder)
+        print(f'A {juego.personaje.nombre} le queda(n) {juego.personaje.vidas} vida(s).')
+        if juego.personaje.esta_muerto():
+            juego.terminar_por_muerte()
+
+    def siguiente_hacia_personaje(self, bicho, juego):
+        origen = bicho.posicion
+        destino = juego.personaje.posicion
+        if origen == destino:
+            return origen
+        cola = deque([(origen, [])])
+        visitadas = {origen}
+        while cola:
+            actual, camino = cola.popleft()
+            for vecino in juego.vecinos_accesibles(actual):
+                if vecino in visitadas:
+                    continue
+                nuevo_camino = camino + [vecino]
+                if vecino == destino:
+                    return nuevo_camino[0]
+                visitadas.add(vecino)
+                cola.append((vecino, nuevo_camino))
+        return None
+
+    def caminar_aleatorio(self, bicho, juego):
+        vecinos = juego.vecinos_accesibles(bicho.posicion)
+        if vecinos:
+            bicho.posicion = random.choice(vecinos)
+            print(f'{bicho.nombre} se mueve a {bicho.posicion.descripcion()}.')
+        else:
+            print(f'{bicho.nombre} no puede moverse.')
+
+    def caminar_hacia_personaje(self, bicho, juego):
+        siguiente = self.siguiente_hacia_personaje(bicho, juego)
+        if siguiente is not None and siguiente != bicho.posicion:
+            bicho.posicion = siguiente
+            print(f'{bicho.nombre} avanza hacia ti y entra en {bicho.posicion.descripcion()}.')
+        else:
+            self.caminar_aleatorio(bicho, juego)
 
 class Agresivo(Modo):
-    def actua(self, un_bicho, juego):
-        if un_bicho.posicion == juego.habitacion_actual:
-            print(f"{un_bicho.nombre} te ataca con fuerza {un_bicho.poder}.")
-            juego.recibir_danio(un_bicho.poder, un_bicho.nombre)
-            return
 
-        vecinos = juego.vecinos_accesibles(un_bicho.posicion)
-        if vecinos:
-            destino = random.choice(vecinos)
-            un_bicho.posicion = destino
-            print(f"{un_bicho.nombre} corre hasta la habitación {destino.numero}.")
+    def actua(self, bicho, juego):
+        if bicho.posicion == juego.personaje.posicion:
+            self.atacar(bicho, juego)
+        else:
+            self.caminar_hacia_personaje(bicho, juego)
 
-    def nombre(self):
-        return "Agresivo"
-
+    def nombre(self) -> str:
+        return 'agresivo'
 
 class Perezoso(Modo):
-    def actua(self, un_bicho, juego):
-        if un_bicho.posicion == juego.habitacion_actual and random.random() < 0.4:
-            print(f"{un_bicho.nombre} te golpea sin muchas ganas.")
-            juego.recibir_danio(un_bicho.poder, un_bicho.nombre)
-            return
 
-        if random.random() < 0.6:
-            print(f"{un_bicho.nombre} se queda dormido.")
-            return
+    def actua(self, bicho, juego):
+        if bicho.posicion == juego.personaje.posicion:
+            self.atacar(bicho, juego)
+        elif random.random() < 0.45:
+            self.caminar_hacia_personaje(bicho, juego)
+        else:
+            print(f'{bicho.nombre} vigila la zona y no se mueve.')
 
-        vecinos = juego.vecinos_accesibles(un_bicho.posicion)
-        if vecinos:
-            destino = random.choice(vecinos)
-            un_bicho.posicion = destino
-            print(f"{un_bicho.nombre} se arrastra hasta la habitación {destino.numero}.")
-
-    def nombre(self):
-        return "Perezoso"
+    def nombre(self) -> str:
+        return 'perezoso'
