@@ -1,5 +1,5 @@
 from __future__ import annotations
-from .comandos import Abrir, Atacar, Ayuda, ComandoNulo, MostrarMapa, Mover, Salir
+from .comandos import Abrir, Atacar, Ayuda, Cerrar, ComandoNulo, Entrar, MostrarMapa, Mover, Salir
 from .direcciones import orientacion_desde_texto
 
 class InterpreteComandos:
@@ -22,6 +22,18 @@ class InterpreteComandos:
             if orientacion is None:
                 return ComandoNulo('No entiendo esa orientación para abrir.')
             return Abrir(orientacion)
+        if texto.startswith('cerrar '):
+            posible = texto.split(maxsplit=1)[1]
+            orientacion = orientacion_desde_texto(posible)
+            if orientacion is None:
+                return ComandoNulo('No entiendo esa orientación para cerrar.')
+            return Cerrar(orientacion)
+        if texto.startswith('entrar '):
+            posible = texto.split(maxsplit=1)[1]
+            orientacion = orientacion_desde_texto(posible)
+            if orientacion is None:
+                return ComandoNulo('No entiendo esa orientación para entrar.')
+            return Entrar(orientacion)
         orientacion = orientacion_desde_texto(texto)
         if orientacion is not None:
             return Mover(orientacion)

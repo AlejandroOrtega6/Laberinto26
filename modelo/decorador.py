@@ -18,6 +18,9 @@ class Decorator(Hoja):
     def abrir(self) -> bool:
         return self.em.abrir()
 
+    def cerrar(self) -> bool:
+        return self.em.cerrar()
+
     def es_puerta(self) -> bool:
         return self.em.es_puerta()
 

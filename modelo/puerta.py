@@ -16,6 +16,9 @@ class Puerta(Hoja):
     def abrir(self) -> bool:
         return self.estado.abrir(self)
 
+    def cerrar(self) -> bool:
+        return self.estado.cerrar(self)
+
     def es_puerta(self) -> bool:
         return True
 

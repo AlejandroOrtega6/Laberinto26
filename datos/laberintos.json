@@ -1,0 +1,77 @@
+{
+  "mapas": [
+    {
+      "id": "aleatorio_ampliacion",
+      "nombre": "Mapa aleatorio ampliado",
+      "tipo": "aleatorio",
+      "descripcion": "Ampliación del proyecto: genera un laberinto diferente en cada partida, con ruta garantizada desde inicio hasta salida, bombas transitables y bichos colocados con criterio.",
+      "funcionalidades_nuevas": [
+        "Generación de mapa aleatorio jugable",
+        "Ruta principal garantizada desde inicio hasta salida",
+        "Salida alejada del inicio",
+        "Bombas colocadas en puertas transitables",
+        "Bichos colocados en ruta y zonas secundarias",
+        "Demo visual desde la interfaz gráfica"
+      ],
+      "configuracion": {
+        "habitaciones_min": 7,
+        "habitaciones_max": 12,
+        "bombas_min": 2,
+        "bombas_max": 3,
+        "bichos_min": 2,
+        "bichos_max": 4,
+        "garantizar_ruta_inicio_salida": true,
+        "salida_alejada_del_inicio": true,
+        "porcentaje_conexiones_extra": 0.2,
+        "probabilidad_bomba_extra": 0.25,
+        "probabilidad_puerta_secundaria_abierta": 0.65
+      }
+    },
+    {
+      "id": "mapa_builder_json",
+      "nombre": "Mapa definido con Builder JSON",
+      "tipo": "definido",
+      "descripcion": "Mapa construido desde JSON usando Builder y DirectorJSON.",
+      "funcionalidades_nuevas": [
+        "Construcción de laberinto desde JSON",
+        "Uso de Builder con DirectorJSON",
+        "Mapa definido por datos externos",
+        "Prueba del patrón Proxy para carga diferida"
+      ],
+      "inicio": 1,
+      "salida": 4,
+      "habitaciones": [
+        {"numero": 1, "forma": "cuadrado"},
+        {"numero": 2, "forma": "cuadrado"},
+        {"numero": 3, "forma": "cuadrado"},
+        {"numero": 4, "forma": "rombo"}
+      ],
+      "puertas": [
+        {"desde": 1, "orientacion": "este", "hasta": 2, "orientacion_destino": "oeste", "abierta": true, "bomba": false},
+        {"desde": 1, "orientacion": "sur", "hasta": 3, "orientacion_destino": "norte", "abierta": true, "bomba": false},
+        {"desde": 2, "orientacion": "sur", "hasta": 4, "orientacion_destino": "norte", "abierta": false, "bomba": true},
+        {"desde": 3, "orientacion": "este", "hasta": 4, "orientacion_destino": "oeste", "abierta": true, "bomba": false}
+      ],
+      "paredes_bomba": [
+        {"habitacion": 3, "orientacion": "sur"}
+      ],
+      "armarios": [
+        {"habitacion": 1, "nombre": "Armario definido en JSON"}
+      ],
+      "tuneles": [
+        {"habitacion": 3, "orientacion": "oeste", "destino": 2}
+      ],
+      "bichos": [
+        {"nombre": "Bicho rojo JSON", "vidas": 2, "poder": 1, "modo": "agresivo", "habitacion": 3},
+        {"nombre": "Bicho azul JSON", "vidas": 1, "poder": 1, "modo": "perezoso", "habitacion": 2}
+      ],
+      "posiciones_mapa": {
+        "1": [0, 0],
+        "2": [1, 0],
+        "3": [0, 1],
+        "4": [1, 1]
+      },
+      "ruta_segura": [1, 3, 4]
+    }
+  ]
+}

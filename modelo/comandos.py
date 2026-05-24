@@ -17,11 +17,25 @@ class Mover(Comando):
         juego.mover(self.orientacion)
 
 @dataclass
+class Entrar(Comando):
+    orientacion: Orientacion
+
+    def ejecutar(self, juego):
+        juego.mover(self.orientacion)
+
+@dataclass
 class Abrir(Comando):
     orientacion: Orientacion
 
     def ejecutar(self, juego):
         juego.abrir(self.orientacion)
+
+@dataclass
+class Cerrar(Comando):
+    orientacion: Orientacion
+
+    def ejecutar(self, juego):
+        juego.cerrar(self.orientacion)
 
 class Atacar(Comando):
 

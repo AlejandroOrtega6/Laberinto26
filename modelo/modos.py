@@ -5,9 +5,32 @@ from collections import deque
 
 class Modo(ABC):
 
-    @abstractmethod
     def actua(self, bicho, juego):
+        if not self.puede_actuar(bicho, juego):
+            return
+        if self.esta_en_la_misma_habitacion(bicho, juego):
+            self.atacar(bicho, juego)
+            return
+        if self.debe_caminar(bicho, juego):
+            self.caminar(bicho, juego)
+        else:
+            self.esperar(bicho, juego)
+
+    def puede_actuar(self, bicho, juego) -> bool:
+        return bicho.esta_vivo() and not juego.personaje.esta_muerto()
+
+    def esta_en_la_misma_habitacion(self, bicho, juego) -> bool:
+        return bicho.posicion == juego.personaje.posicion
+
+    @abstractmethod
+    def debe_caminar(self, bicho, juego) -> bool:
         pass
+
+    def caminar(self, bicho, juego):
+        self.caminar_aleatorio(bicho, juego)
+
+    def esperar(self, bicho, juego):
+        print(f'{bicho.nombre} vigila la zona y no se mueve.')
 
     @abstractmethod
     def nombre(self) -> str:
@@ -57,24 +80,22 @@ class Modo(ABC):
 
 class Agresivo(Modo):
 
-    def actua(self, bicho, juego):
-        if bicho.posicion == juego.personaje.posicion:
-            self.atacar(bicho, juego)
-        else:
-            self.caminar_hacia_personaje(bicho, juego)
+    def debe_caminar(self, bicho, juego) -> bool:
+        return True
+
+    def caminar(self, bicho, juego):
+        self.caminar_hacia_personaje(bicho, juego)
 
     def nombre(self) -> str:
         return 'agresivo'
 
 class Perezoso(Modo):
 
-    def actua(self, bicho, juego):
-        if bicho.posicion == juego.personaje.posicion:
-            self.atacar(bicho, juego)
-        elif random.random() < 0.45:
-            self.caminar_hacia_personaje(bicho, juego)
-        else:
-            print(f'{bicho.nombre} vigila la zona y no se mueve.')
+    def debe_caminar(self, bicho, juego) -> bool:
+        return random.random() < 0.45
+
+    def caminar(self, bicho, juego):
+        self.caminar_hacia_personaje(bicho, juego)
 
     def nombre(self) -> str:
         return 'perezoso'

@@ -1,9 +1,11 @@
 from __future__ import annotations
+import json
 import random
+from pathlib import Path
 from .armario import Armario
 from .bicho import Bicho
 from .bomba import Bomba
-from .builder import ConcreteBuilder, Director
+from .builder import ConcreteBuilder, Director, DirectorJSON
 from .direcciones import ESTE, NORTE, NORESTE, NOROESTE, OESTE, SUR, SURESTE, SUROESTE, TODAS_ORIENTACIONES, Orientacion
 from .estado_puerta import Abierta
 from .factorias import ConcreteFactory, ConcreteFactoryBombas
@@ -16,6 +18,7 @@ from .modos import Agresivo, Modo, Perezoso
 from .pared import Pared
 from .personaje import Personaje
 from .puerta import Puerta
+from .proxy import ProxyLaberinto
 from .tunel import Tunel
 
 class Juego:
@@ -128,19 +131,82 @@ class Juego:
         director.Construct()
         return builder.GetProduct()
 
-    def nombresMapas(self):
-        return ['Aleatorio']
+    def fabricarLabConBuilderJSON(self, nombre: str='Mapa definido con Builder JSON') -> Laberinto:
+        mapa_json = self.cargar_mapa_json(nombre)
+        builder = ConcreteBuilder(self)
+        director = DirectorJSON(builder)
+        director.Construct(mapa_json)
+        return builder.GetProduct()
 
-    def fabricarLaberintoPorNombre(self, nombre: str='Aleatorio') -> Laberinto:
-        return self.fabricarMapaAleatorio()
+    def fabricarLabConProxy(self, nombre: str='Mapa definido con Builder JSON'):
+        return ProxyLaberinto(lambda: self.fabricarLabConBuilderJSON(nombre))
+
+    def ruta_json_laberintos(self) -> Path:
+        return Path(__file__).resolve().parent.parent / 'datos' / 'laberintos.json'
+
+    def cargar_mapa_json(self, nombre: str | None=None) -> dict:
+        ruta = self.ruta_json_laberintos()
+        if not ruta.exists():
+            return self.configuracion_mapa_por_defecto()
+        try:
+            datos = json.loads(ruta.read_text(encoding='utf-8'))
+            mapas = datos.get('mapas', [])
+            if not mapas:
+                return self.configuracion_mapa_por_defecto()
+            if nombre is None:
+                return mapas[0]
+            for mapa in mapas:
+                if mapa.get('nombre') == nombre or mapa.get('id') == nombre:
+                    return mapa
+            return mapas[0]
+        except (json.JSONDecodeError, OSError, TypeError):
+            return self.configuracion_mapa_por_defecto()
+
+    def configuracion_mapa_por_defecto(self) -> dict:
+        return {
+            'id': 'aleatorio_por_defecto',
+            'nombre': 'Mapa aleatorio',
+            'tipo': 'aleatorio',
+            'configuracion': {
+                'habitaciones_min': 7,
+                'habitaciones_max': 12,
+                'bombas_min': 2,
+                'bombas_max': 3,
+                'bichos_min': 2,
+                'bichos_max': 4,
+                'porcentaje_conexiones_extra': 0.2,
+                'probabilidad_bomba_extra': 0.25,
+                'probabilidad_puerta_secundaria_abierta': 0.65
+            }
+        }
+
+    def nombresMapas(self):
+        ruta = self.ruta_json_laberintos()
+        if not ruta.exists():
+            return ['Mapa aleatorio']
+        try:
+            datos = json.loads(ruta.read_text(encoding='utf-8'))
+            return [mapa.get('nombre', mapa.get('id', 'Mapa sin nombre')) for mapa in datos.get('mapas', [])] or ['Mapa aleatorio']
+        except (json.JSONDecodeError, OSError, TypeError):
+            return ['Mapa aleatorio']
+
+    def fabricarLaberintoPorNombre(self, nombre: str='Mapa aleatorio ampliado') -> Laberinto:
+        mapa_json = self.cargar_mapa_json(nombre)
+        if mapa_json.get('tipo') == 'definido':
+            return self.fabricarLabConBuilderJSON(nombre)
+        return self.fabricarMapaAleatorio(nombre)
 
     def fabricarMapaClasico(self) -> Laberinto:
         return self.fabricarMapaAleatorio()
 
-    def fabricarMapaAleatorio(self) -> Laberinto:
+    def fabricarMapaAleatorio(self, nombre_mapa: str | None=None) -> Laberinto:
+        mapa_json = self.cargar_mapa_json(nombre_mapa)
+        config = mapa_json.get('configuracion', {})
         laberinto = self.fabricarLaberinto()
         direcciones = [(NORTE, (0, -1)), (SUR, (0, 1)), (ESTE, (1, 0)), (OESTE, (-1, 0))]
-        total_habitaciones = random.randint(7, 12)
+        habitaciones_min = int(config.get('habitaciones_min', 7))
+        habitaciones_max = int(config.get('habitaciones_max', 12))
+        total_habitaciones = random.randint(habitaciones_min, habitaciones_max)
         coords = [(0, 0)]
         ocupadas = {(0, 0)}
         padre = {}
@@ -211,7 +277,7 @@ class Juego:
         if len(candidatas_bomba) < 2:
             candidatas_bomba += [arista for arista in aristas_arbol if arista[2] in ruta_edges and arista[0] != (0, 0)]
         random.shuffle(candidatas_bomba)
-        cantidad_bombas = min(len(candidatas_bomba), random.randint(2, 3))
+        cantidad_bombas = min(len(candidatas_bomba), random.randint(int(config.get('bombas_min', 2)), int(config.get('bombas_max', 3))))
         aristas_bomba = {arista[2] for arista in candidatas_bomba[:cantidad_bombas]}
         for hijo_coord, padre_coord in padre.items():
             h_padre = coord_a_habitacion[padre_coord]
@@ -226,7 +292,7 @@ class Juego:
             elif clave in ruta_edges:
                 self.conectar(h_padre, orientacion, h_hijo, abierta=True)
             else:
-                self.conectar(h_padre, orientacion, h_hijo, abierta=random.random() < 0.65)
+                self.conectar(h_padre, orientacion, h_hijo, abierta=random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65)))
         for coord in list(ocupadas):
             for orientacion, (dx, dy) in direcciones:
                 vecino = (coord[0] + dx, coord[1] + dy)
@@ -235,17 +301,17 @@ class Juego:
                 clave = frozenset((coord, vecino))
                 if clave in conexiones:
                     continue
-                if random.random() > 0.2:
+                if random.random() > float(config.get('porcentaje_conexiones_extra', 0.2)):
                     continue
                 conexiones.add(clave)
                 h1 = coord_a_habitacion[coord]
                 h2 = coord_a_habitacion[vecino]
                 if clave in ruta_edges:
                     self.conectar(h1, orientacion, h2, abierta=True)
-                elif random.random() < 0.25:
+                elif random.random() < float(config.get('probabilidad_bomba_extra', 0.25)):
                     self.conectarConBomba(h1, orientacion, h2, abierta=True)
                 else:
-                    self.conectar(h1, orientacion, h2, abierta=random.random() < 0.65)
+                    self.conectar(h1, orientacion, h2, abierta=random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65)))
         def contar_bombas_colocadas():
             total = 0
             vistas = set()
@@ -268,7 +334,7 @@ class Juego:
         if len(candidatas) < 2:
             candidatas.extend([h for h in coord_a_habitacion.values() if h != coord_a_habitacion[0, 0] and h != coord_a_habitacion[salida_coord] and (h not in candidatas)])
         nombres = ['Bicho rojo', 'Bicho azul', 'Bicho verde', 'Bicho morado', 'Bicho naranja']
-        cantidad_bichos = min(len(candidatas), random.randint(2, 4))
+        cantidad_bichos = min(len(candidatas), random.randint(int(config.get('bichos_min', 2)), int(config.get('bichos_max', 4))))
         for i, habitacion in enumerate(candidatas[:cantidad_bichos]):
             if habitacion in ruta_intermedia:
                 modo = Agresivo()
@@ -281,7 +347,8 @@ class Juego:
         laberinto.fijar_salida(coord_a_habitacion[salida_coord].num)
         laberinto.posiciones_mapa = {habitacion.num: coord for coord, habitacion in coord_a_habitacion.items()}
         laberinto.ruta_segura = [coord_a_habitacion[c].num for c in ruta_segura]
-        laberinto.nombre_mapa = 'Mapa aleatorio'
+        laberinto.nombre_mapa = mapa_json.get('nombre', 'Mapa aleatorio')
+        laberinto.mapa_json = mapa_json
         return laberinto
 
     def fabricarLab4Hab(self) -> Laberinto:
@@ -328,6 +395,8 @@ class Juego:
         print('  norte/sur/este/oeste o n/s/e/o')
         print('  noreste/noroeste/sureste/suroeste o ne/no/se/so')
         print('  abrir <direccion>')
+        print('  cerrar <direccion>')
+        print('  entrar <direccion>')
         print('  atacar')
         print('  mapa')
         print('  ayuda')
@@ -369,6 +438,16 @@ class Juego:
             print(f'Has abierto el lado {orientacion.nombre()}.')
         else:
             print('Ese lado no se puede abrir.')
+
+    def cerrar(self, orientacion: Orientacion):
+        lado = self.personaje.posicion.obtener_lado(orientacion)
+        if lado is None:
+            print('No hay nada que cerrar en esa orientación.')
+            return
+        if hasattr(lado, 'cerrar') and lado.cerrar():
+            print(f'Has cerrado el lado {orientacion.nombre()}.')
+        else:
+            print('Ese lado no se puede cerrar.')
 
     def atacar_bicho(self):
         presentes = [b for b in self.laberinto.bichos if b.esta_vivo() and b.posicion == self.personaje.posicion]

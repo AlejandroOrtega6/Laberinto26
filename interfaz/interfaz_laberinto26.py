@@ -89,7 +89,7 @@ class InterfazLaberinto:
         izquierda = ttk.Frame(cabecera, style='Root.TFrame')
         izquierda.grid(row=0, column=0, sticky='w')
         ttk.Label(izquierda, text='🧩 Laberinto26', style='Title.TLabel').grid(row=0, column=0, sticky='w')
-        ttk.Label(izquierda, text='Mapa aleatorio • panel de estado, mapa interactivo y registro de eventos', style='SubTitle.TLabel').grid(row=1, column=0, sticky='w', pady=(2, 0))
+        ttk.Label(izquierda, text='Explora el laberinto y llega a la salida', style='SubTitle.TLabel').grid(row=1, column=0, sticky='w', pady=(2, 0))
         derecha = ttk.Frame(cabecera, style='Root.TFrame')
         derecha.grid(row=0, column=1, sticky='e')
         self.lbl_modo = tk.Label(derecha, text='MODO BOMBAS', bg='#052e16', fg='#86efac', font=('Segoe UI', 10, 'bold'), padx=12, pady=6)

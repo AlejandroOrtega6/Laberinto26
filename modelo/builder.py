@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from .direcciones import ESTE, NORTE, OESTE, SUR
+from .direcciones import ESTE, NORTE, OESTE, SUR, orientacion_desde_texto
 from .formas import Cuadrado, Rombo
 from .modos import Agresivo, Perezoso
 
@@ -134,3 +134,64 @@ class Director:
         self.builder.BuildBicho('Bicho azul', 1, 1, Perezoso(), 2)
         self.builder.BuildInicio(1)
         self.builder.BuildSalida(4)
+
+class DirectorJSON:
+
+    def __init__(self, builder):
+        self.builder = builder
+
+    def Construct(self, mapa_json):
+        self.builder.BuildLaberinto()
+        for habitacion in mapa_json.get('habitaciones', []):
+            numero = int(habitacion.get('numero'))
+            forma = self._crear_forma(habitacion.get('forma', 'cuadrado'), numero)
+            self.builder.BuildHabitacion(numero, forma)
+        for puerta in mapa_json.get('puertas', []):
+            h1 = int(puerta.get('desde'))
+            h2 = int(puerta.get('hasta'))
+            orientacion1 = self._crear_orientacion(puerta.get('orientacion'))
+            orientacion2 = self._crear_orientacion(puerta.get('orientacion_destino')) if puerta.get('orientacion_destino') else None
+            abierta = bool(puerta.get('abierta', False))
+            if puerta.get('bomba', False):
+                self.builder.BuildPuertaBomba(h1, orientacion1, h2, orientacion2, abierta)
+            else:
+                self.builder.BuildPuerta(h1, orientacion1, h2, orientacion2, abierta)
+        for pared in mapa_json.get('paredes_bomba', []):
+            self.builder.BuildParedBomba(int(pared.get('habitacion')), self._crear_orientacion(pared.get('orientacion')))
+        for armario in mapa_json.get('armarios', []):
+            self.builder.BuildArmario(int(armario.get('habitacion')), armario.get('nombre', 'Armario'))
+        for tunel in mapa_json.get('tuneles', []):
+            self.builder.BuildTunel(int(tunel.get('habitacion')), self._crear_orientacion(tunel.get('orientacion')), int(tunel.get('destino')))
+        for bicho in mapa_json.get('bichos', []):
+            self.builder.BuildBicho(
+                bicho.get('nombre', 'Bicho'),
+                int(bicho.get('vidas', 1)),
+                int(bicho.get('poder', 1)),
+                self._crear_modo(bicho.get('modo', 'perezoso')),
+                int(bicho.get('habitacion'))
+            )
+        self.builder.BuildInicio(int(mapa_json.get('inicio', 1)))
+        self.builder.BuildSalida(int(mapa_json.get('salida', 1)))
+        producto = self.builder.GetProduct()
+        producto.nombre_mapa = mapa_json.get('nombre', 'Mapa JSON')
+        producto.mapa_json = mapa_json
+        if 'posiciones_mapa' in mapa_json:
+            producto.posiciones_mapa = {int(k): tuple(v) for k, v in mapa_json.get('posiciones_mapa', {}).items()}
+        if 'ruta_segura' in mapa_json:
+            producto.ruta_segura = list(mapa_json.get('ruta_segura', []))
+
+    def _crear_orientacion(self, texto):
+        orientacion = orientacion_desde_texto(str(texto))
+        if orientacion is None:
+            raise ValueError(f'Orientación no válida: {texto}')
+        return orientacion
+
+    def _crear_forma(self, texto, numero):
+        if str(texto).lower() == 'rombo':
+            return Rombo(numero)
+        return Cuadrado(numero)
+
+    def _crear_modo(self, texto):
+        if str(texto).lower() == 'agresivo':
+            return Agresivo()
+        return Perezoso()

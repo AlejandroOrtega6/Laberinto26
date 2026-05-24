@@ -12,6 +12,10 @@ class EstadoPuerta(ABC):
         pass
 
     @abstractmethod
+    def cerrar(self, puerta) -> bool:
+        pass
+
+    @abstractmethod
     def nombre(self) -> str:
         pass
 
@@ -32,6 +36,10 @@ class Abierta(EstadoPuerta):
     def abrir(self, puerta) -> bool:
         return True
 
+    def cerrar(self, puerta) -> bool:
+        puerta.estado = Cerrada()
+        return True
+
     def nombre(self) -> str:
         return 'abierta'
 
@@ -42,6 +50,9 @@ class Cerrada(EstadoPuerta):
 
     def abrir(self, puerta) -> bool:
         puerta.estado = Abierta()
+        return True
+
+    def cerrar(self, puerta) -> bool:
         return True
 
     def nombre(self) -> str:
