@@ -1,13 +1,13 @@
 <div align="center">
 
-# 🧩 Laberinto26 - Versión 3.0
+# 🧩 Laberinto26
 
 ### Juego de laberinto en Python aplicando patrones de diseño
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)
-![POO](https://img.shields.io/badge/POO-Programación%20Orientada%20a%20Objetos-orange)
-![Diseño](https://img.shields.io/badge/Asignatura-Diseño%20de%20Software-purple)
-![Versión](https://img.shields.io/badge/Versión-3.0-success)
+![POO](https://img.shields.io/badge/Programaci%C3%B3n-Orientada%20a%20Objetos-orange)
+![Diseño](https://img.shields.io/badge/Asignatura-Dise%C3%B1o%20de%20Software-purple)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-3.0-success)
 
 **Autor:** Alejandro Ortega Mendoza  
 **Asignatura:** Diseño de Software  
@@ -17,100 +17,202 @@
 
 ---
 
-## Descripción
+## 📌 Índice
 
-**Laberinto26** es un juego de laberinto desarrollado en Python. El jugador controla un personaje que debe avanzar por habitaciones hasta llegar a la salida, evitando bombas y enfrentándose a bichos.
-
-El proyecto está dividido en una capa de lógica y una capa de interfaz gráfica. La solución usa varios patrones de diseño trabajados en clase y añade una ampliación basada en JSON.
+- [Descripción](#-descripción)
+- [Versión 3.0](#-versión-30)
+- [Objetivo del juego](#-objetivo-del-juego)
+- [Mapas aleatorios](#-mapas-aleatorios)
+- [Diagramas de la ampliación](#-diagramas-de-la-ampliación)
+- [Estructura del proyecto](#-estructura-del-proyecto)
+- [Cómo ejecutar](#-cómo-ejecutar)
+- [Cómo jugar](#-cómo-jugar)
+- [Clases principales](#-clases-principales)
+- [Patrones de diseño usados](#-patrones-de-diseño-usados)
+- [Autor](#-autor)
 
 ---
 
-## Versión 3.0
+## 🎮 Descripción
 
-La versión 3.0 actualiza el proyecto para cubrir los patrones pendientes indicados en la revisión y deja la ampliación integrada en el código y en el archivo JSON.
+**Laberinto26** es un juego de laberinto desarrollado en **Python** para la asignatura de **Diseño de Software**.
+
+El jugador controla un personaje que debe avanzar por distintas habitaciones hasta encontrar la salida.  
+Durante la partida puede encontrarse con puertas, paredes, bombas, túneles y bichos.
+
+El proyecto está dividido en clases y carpetas para representar los elementos del dominio y los patrones vistos en clase.
+
+---
+
+## 🚀 Versión 3.0
+
+Esta versión mejora el juego para que cada partida sea diferente.
+La versión 3.0 incluye:
+- generación aleatoria de laberintos,
+- configuración mediante JSON,
+- ampliación de la interfaz gráfica,
+- nuevas pruebas funcionales,
+- mejoras en la estructura del proyecto.
 
 ### Cambios principales
 
-- Generación aleatoria de laberintos jugables.
-- Configuración de la ampliación desde `datos/laberintos.json`.
-- Mapa definido desde JSON usando `Builder` y `DirectorJSON`.
-- Corrección del patrón `Template Method` en la clase `Modo`.
-- Añadido patrón `Proxy` para carga diferida de laberintos.
-- Revisión de `Singleton` mediante el método `Instance()` de las factorías.
-- Interfaz gráfica principal renombrada a `interfaz_laberinto26.py`.
-- Comandos base `Abrir`, `Cerrar` y `Entrar` disponibles.
-- Pruebas de la ampliación en `tests_pruebas_ampliacion.py`.
+- Cada vez que se pulsa **Nuevo mapa** se genera un laberinto distinto.
+- Los mapas ya no son siempre iguales.
+- El mapa puede tener entre 7 y 12 habitaciones.
+- La salida se coloca en una habitación alejada del inicio.
+- Siempre se genera una ruta principal posible para ganar.
+- Las bombas ya no aparecen en todas las puertas.
+- Ahora se garantiza que haya bombas en el mapa, pero colocadas en puertas transitables.
+- Las bombas aparecen en puertas que se pueden usar, no en paredes sin recorrido.
+- El panel de abrir puertas ahora muestra solo las puertas cerradas de la habitación actual.
+- El botón de abrir se desactiva cuando no hay puertas cerradas cerca.
+- Los bichos ahora tienen más sentido dentro del juego: algunos custodian la ruta hacia la salida y otros se mueven por zonas secundarias.
+- Los bichos agresivos persiguen al jugador cuando hay camino disponible.
+- Se añade un cartel central de **HAS MUERTO** cuando el personaje pierde todas las vidas.
+- El cartel de muerte tiene un botón para **Volver a jugar**.
+- Se mantiene la versión por consola.
+- Se mantiene la versión visual con botones y registro de eventos.
+- La configuración de la ampliación se guarda en `datos/laberintos.json` y es leída por el juego.
 
 ---
 
-## Funcionalidad base
+## 🎯 Objetivo del juego
 
-La funcionalidad base del proyecto incluye:
+El objetivo es llegar desde la habitación inicial hasta la habitación final sin que el personaje muera.
 
-- Formas: `Cuadrado` y `Rombo`.
-- Bichos: `Agresivo` y `Perezoso`.
-- Estados en `Ente`, `Puerta` y `Juego`.
-- Comandos para puertas: `Abrir`, `Cerrar` y `Entrar`.
-- Capas de lógica y GUI.
-- Elementos del mapa: habitaciones, paredes, puertas, bombas, túneles y armarios.
+Durante el recorrido hay que tener en cuenta:
+
+- algunas puertas están abiertas;
+- otras puertas están cerradas y hay que abrirlas;
+- las paredes bloquean el paso;
+- las bombas pueden hacer daño;
+- los bichos pueden atacar o moverse;
+- el jugador puede atacar a los bichos.
 
 ---
 
-## Ampliación implementada
+## 🗺️ Mapas aleatorios
 
-### Mapa aleatorio
+En esta versión el laberinto se genera de forma distinta en cada partida.
 
-El juego puede generar un laberinto distinto en cada partida.
+El juego crea automáticamente:
 
-Características:
+- varias habitaciones;
+- una habitación inicial;
+- una habitación de salida;
+- una ruta principal para poder ganar;
+- conexiones secundarias;
+- algunas puertas cerradas;
+- algunas bombas;
+- bichos colocados con sentido dentro del recorrido.
 
-- número variable de habitaciones;
-- habitación inicial y habitación de salida;
-- ruta principal garantizada;
-- salida alejada del inicio;
-- bombas colocadas en puertas transitables;
-- bichos colocados en ruta y zonas secundarias.
+La ruta principal no está llena de bombas, por lo que el juego se puede superar.  
+Aun así, en el mapa siempre aparecen bombas colocadas en algunas puertas para que exista riesgo sin hacer la partida imposible.
 
-### JSON
+---
 
-La ampliación está incluida en:
+## 🧩 Diagramas de la ampliación
+
+### Diagrama completo actualizado
+
+Este diagrama muestra la estructura general del proyecto con la ampliación añadida sobre el diseño base del laberinto.
+
+![Diagrama completo actualizado](docs/imagenes/diagrama_completo_funcionalidad_nueva.png)
+
+---
+
+### Diagrama de la funcionalidad nueva
+
+Este diagrama resume la funcionalidad nueva de la versión 3.0: generación de mapas aleatorios jugables configurados mediante JSON.
+
+![Diagrama de la funcionalidad nueva](docs/imagenes/diagrama_funcionalidad_nueva.png)
+
+---
+
+## 📁 Estructura del proyecto
 
 ```text
-/datos/laberintos.json
+Laberinto26/
+├── main.py
+├── main_gui.py
+├── README.md
+├── .gitignore
+├── tests_pruebas_ampliacion.py
+├── docs/
+│   └── imagenes/
+│       ├── diagrama_completo_funcionalidad_nueva.png
+│       └── diagrama_funcionalidad_nueva.png
+├── datos/
+│   └── laberintos.json
+├── interfaz/
+│   ├── __init__.py
+│   └── interfaz_laberinto26.py
+└── modelo/
+    ├── __init__.py
+    ├── armario.py
+    ├── bicho.py
+    ├── bomba.py
+    ├── builder.py
+    ├── comandos.py
+    ├── contenedor.py
+    ├── decorador.py
+    ├── direcciones.py
+    ├── elemento_mapa.py
+    ├── ente.py
+    ├── estado_ente.py
+    ├── estado_puerta.py
+    ├── factorias.py
+    ├── fases.py
+    ├── formas.py
+    ├── habitacion.py
+    ├── hoja.py
+    ├── interprete.py
+    ├── iterador.py
+    ├── juego.py
+    ├── laberinto.py
+    ├── modos.py
+    ├── pared.py
+    ├── personaje.py
+    ├── puerta.py
+    ├── tunel.py
+    └── visitante.py
 ```
-
-Ese archivo contiene dos tipos de mapa:
-
-1. `Mapa aleatorio ampliado`, usado para generar mapas aleatorios con parámetros configurables.
-2. `Mapa definido con Builder JSON`, usado para construir un laberinto completo desde datos JSON usando `Builder` y `DirectorJSON`.
 
 ---
 
-## Cómo ejecutar
+## 📄 Archivos importantes
 
-### Versión gráfica
+- `interfaz/interfaz_laberinto26.py`: interfaz gráfica principal del proyecto.
+- `main_gui.py`: punto de entrada de la versión visual.
+- `main.py`: punto de entrada de la versión por consola.
+- `datos/laberintos.json`: configuración de la ampliación y parámetros del mapa aleatorio.
+- `tests_pruebas_ampliacion.py`: pruebas básicas de la ampliación.
+- `docs/imagenes/diagrama_completo_funcionalidad_nueva.png`: diagrama completo actualizado del proyecto.
+- `docs/imagenes/diagrama_funcionalidad_nueva.png`: diagrama específico de la funcionalidad nueva.
 
-```bash
-python main_gui.py
-```
+---
 
-### Versión consola
+## ⚙️ Cómo ejecutar
+
+### Versión por consola
 
 ```bash
 python main.py
 ```
 
-### Pruebas
+### Versión visual
 
 ```bash
-python tests_pruebas_ampliacion.py
+python main_gui.py
 ```
 
 ---
 
-## Cómo jugar
+## 🕹️ Cómo jugar
 
-Comandos disponibles en consola o en la caja de comandos de la interfaz:
+El jugador puede usar los botones de la ventana o escribir comandos.
+
+### Comandos disponibles
 
 | Comando | Acción |
 |---|---|
@@ -122,201 +224,276 @@ Comandos disponibles en consola o en la caja de comandos de la interfaz:
 | `noroeste` / `no` | Mover al noroeste |
 | `sureste` / `se` | Mover al sureste |
 | `suroeste` / `so` | Mover al suroeste |
-| `abrir norte` | Abrir una puerta |
-| `cerrar norte` | Cerrar una puerta |
-| `entrar norte` | Entrar por una dirección |
-| `atacar` | Atacar a un bicho |
+| `abrir norte` | Abrir una puerta al norte |
+| `abrir este` | Abrir una puerta al este |
+| `atacar` | Atacar a un bicho de la habitación actual |
 | `mapa` | Mostrar información del mapa |
-| `ayuda` | Mostrar ayuda |
+| `ayuda` | Mostrar los comandos |
 | `salir` | Terminar la partida |
 
 ---
 
-## Estructura del proyecto
+## 👾 Sentido de los bichos
 
-```text
-Laberinto26/
-├── datos/
-│   └── laberintos.json
-├── interfaz/
-│   ├── __init__.py
-│   └── interfaz_laberinto26.py
-├── modelo/
-│   ├── armario.py
-│   ├── bicho.py
-│   ├── bomba.py
-│   ├── builder.py
-│   ├── comandos.py
-│   ├── contenedor.py
-│   ├── decorador.py
-│   ├── direcciones.py
-│   ├── elemento_mapa.py
-│   ├── ente.py
-│   ├── estado_ente.py
-│   ├── estado_puerta.py
-│   ├── factorias.py
-│   ├── fases.py
-│   ├── formas.py
-│   ├── habitacion.py
-│   ├── hoja.py
-│   ├── interprete.py
-│   ├── iterador.py
-│   ├── juego.py
-│   ├── laberinto.py
-│   ├── modos.py
-│   ├── pared.py
-│   ├── personaje.py
-│   ├── proxy.py
-│   ├── puerta.py
-│   ├── tunel.py
-│   └── visitante.py
-├── main.py
-├── main_gui.py
-├── tests_pruebas_ampliacion.py
-├── README.md
-└── .gitignore
-```
+Los bichos no están puestos al azar solo como decoración.  
+En esta versión algunos pueden aparecer en la ruta hacia la salida para obligar al jugador a decidir si avanza, ataca o cambia de camino.
+
+- Los bichos agresivos intentan acercarse al jugador.
+- Los bichos perezosos pueden quedarse vigilando o moverse de vez en cuando.
+- El jugador puede atacar si coincide con un bicho en la misma habitación.
+- La partida sigue siendo posible porque la ruta principal no se bloquea con bombas en todas las puertas.
 
 ---
 
-## Patrones de diseño usados
+## 💣 Bombas
 
-### Composite
+Las bombas están colocadas en puertas del laberinto.  
+De esta forma tienen sentido dentro de la partida, porque el jugador puede encontrarlas al avanzar por caminos reales del mapa.
 
-Representa la estructura del mapa.
+- No todas las puertas tienen bomba.
+- Las bombas no se colocan en todas las paredes.
+- Hay al menos dos bombas por mapa.
+- La partida sigue siendo posible porque el personaje tiene varias vidas y no todas las rutas están llenas de bombas.
 
-- `ElementoMapa`
+---
+
+## 🚪 Apertura de puertas
+
+La interfaz muestra las puertas de la habitación actual de forma más clara.
+
+- Si hay puertas cerradas cerca, aparecen en el selector de abrir.
+- Al pulsar **Abrir puerta**, se abre la dirección seleccionada.
+- Si no hay puertas cerradas, el botón queda desactivado.
+- Las puertas abiertas se muestran como rutas disponibles.
+- Las puertas cerradas se indican para que el jugador sepa qué puede abrir.
+
+Esto evita tener que probar direcciones al azar.
+
+---
+
+## 🧱 Clases principales
+
+### Juego
+
+La clase `Juego` centraliza la partida.  
+Se encarga de crear el laberinto, gestionar el personaje, procesar acciones y comprobar si se ha ganado o perdido.
+
+### Fase
+
+Representa el estado general de la partida.
+
+Clases relacionadas:
+
+- `Inicial`
+- `Jugando`
+- `Final`
+
+### ElementoMapa
+
+Es la clase base de los elementos del mapa.
+
+A partir de ella aparecen:
+
 - `Contenedor`
 - `Hoja`
-- `Laberinto`
 - `Habitacion`
-- `Armario`
-
-Una habitación puede contener elementos y el laberinto contiene habitaciones.
-
-### Decorator
-
-Permite añadir comportamiento a un elemento del mapa.
-
-- `Decorator`
+- `Laberinto`
+- `Pared`
+- `Puerta`
 - `Bomba`
+- `Tunel`
 
-La bomba envuelve una puerta o una pared y añade el efecto de daño.
+### Ente
 
-### State
+Representa los seres del juego.
 
-Gestiona objetos cuyo comportamiento cambia según su estado.
+Clases relacionadas:
 
-- `EstadoPuerta`: `Abierta`, `Cerrada`.
-- `EstadoEnte`: `Vivo`, `Muerto`.
-- `Fase`: `Inicial`, `Jugando`, `Final`.
+- `Personaje`
+- `Bicho`
 
-### Strategy
+### EstadoEnte
 
-Permite cambiar el comportamiento de los bichos.
+Representa si un ente está vivo o muerto.
+
+Clases relacionadas:
+
+- `Vivo`
+- `Muerto`
+
+### EstadoPuerta
+
+Representa si una puerta está abierta o cerrada.
+
+Clases relacionadas:
+
+- `Abierta`
+- `Cerrada`
+
+### Modo
+
+Representa la forma de actuar de un bicho.
+
+Clases relacionadas:
 
 - `Agresivo`
 - `Perezoso`
 
-Cada modo decide cómo actúa el bicho.
+### Forma
 
-### Template Method
+Representa la forma de una habitación.
 
-Aplicado en `Modo`.
+Clases relacionadas:
 
-La clase base `Modo` define el algoritmo general de actuación:
+- `Cuadrado`
+- `Rombo`
 
-1. comprobar si el bicho puede actuar;
-2. comprobar si está en la habitación del jugador;
-3. atacar, moverse o esperar.
+### Orientacion
 
-Las subclases `Agresivo` y `Perezoso` solo redefinen pasos concretos como `debe_caminar()` y `caminar()`.
+Representa las direcciones posibles del laberinto.
 
-### Factory Method / Abstract Factory
+Ejemplos:
 
-La creación de objetos se centraliza mediante métodos de fabricación.
+- `Norte`
+- `Sur`
+- `Este`
+- `Oeste`
+- `Noreste`
+- `Sureste`
 
-- `fabricarLaberinto`
+### Comando
+
+Representa acciones que puede ejecutar el jugador.
+
+Ejemplos:
+
+- `Abrir`
+- `Mover`
+- `Atacar`
+- `Salir`
+
+---
+
+## 🧠 Patrones de diseño usados
+
+### Composite
+
+Se usa para representar elementos simples y compuestos del mapa.
+
+Ejemplo:
+
+- `ElementoMapa`
+- `Contenedor`
+- `Hoja`
+- `Habitacion`
+- `Laberinto`
+
+Una habitación puede contener otros elementos, y el laberinto contiene habitaciones.
+
+---
+
+### Decorator
+
+Se usa para añadir comportamiento adicional a un elemento del mapa.
+
+Ejemplo:
+
+- `Decorator`
+- `Bomba`
+
+Una bomba puede envolver una pared o una puerta para añadir el efecto de daño.
+
+---
+
+### State
+
+Se usa para representar cambios de estado.
+
+Ejemplos:
+
+- una puerta puede estar `Abierta` o `Cerrada`;
+- un ente puede estar `Vivo` o `Muerto`;
+- el juego puede estar en fase `Inicial`, `Jugando` o `Final`.
+
+---
+
+### Strategy
+
+Se usa para cambiar el comportamiento de los bichos.
+
+Ejemplo:
+
+- `Agresivo`
+- `Perezoso`
+
+Cada modo define una forma distinta de actuar.
+
+---
+
+### Factory Method
+
+Se usa para centralizar la creación de elementos del juego.
+
+Ejemplos:
+
 - `fabricarHabitacion`
+- `fabricarPared`
 - `fabricarPuerta`
 - `fabricarBomba`
 - `fabricarBicho`
 
-Las factorías permiten crear familias de objetos normales o con bombas.
-
-### Builder
-
-Construye laberintos paso a paso.
-
-- `Builder`
-- `ConcreteBuilder`
-- `Director`
-- `DirectorJSON`
-
-`DirectorJSON` lee la estructura del mapa desde JSON y ordena al builder crear habitaciones, puertas, bombas, túneles, bichos, inicio y salida.
-
-### Singleton
-
-Las factorías usan `Instance()` para mantener una única instancia compartida.
-
-- `ConcreteFactory.Instance()`
-- `ConcreteFactoryBombas.Instance()`
-
-### Proxy
-
-`ProxyLaberinto` permite retrasar la creación real del laberinto hasta que se necesita.
-
-Esto se usa como ejemplo de acceso controlado al objeto real.
+---
 
 ### Command
 
-Representa acciones del jugador como objetos.
+Se usa para representar órdenes del jugador como objetos.
 
-- `Abrir`
-- `Cerrar`
-- `Entrar`
-- `Mover`
-- `Atacar`
-- `MostrarMapa`
-- `Salir`
+Ejemplos:
+
+- moverse;
+- abrir;
+- atacar;
+- mostrar mapa;
+- salir.
+
+---
 
 ### Interpreter
 
-Convierte el texto escrito por el jugador en comandos ejecutables.
+Se usa para transformar el texto escrito por el usuario en comandos del juego.
 
 Ejemplos:
 
 ```text
 abrir este
-cerrar norte
-entrar sur
+norte
 atacar
 mapa
 ```
 
+---
+
 ### Facade
 
-La clase `Juego` actúa como punto principal de acceso al sistema.
+La clase `Juego` funciona como punto principal de acceso al sistema.
 
-Centraliza la creación del laberinto, el personaje, los bichos, los comandos y el control general de la partida.
-
----
-
-## Pruebas incluidas
-
-El archivo `tests_pruebas_ampliacion.py` comprueba:
-
-- que el JSON se carga correctamente;
-- que el mapa aleatorio genera habitaciones, bichos y bombas;
-- que `Builder` y `DirectorJSON` construyen un mapa desde JSON;
-- que `ProxyLaberinto` carga el laberinto de forma diferida;
-- que `Template Method` está en la clase base `Modo`;
-- que los comandos `Abrir`, `Cerrar` y `Entrar` son reconocidos.
+Desde fuera no hace falta conocer todos los detalles internos del laberinto, las puertas, los bichos o los estados.  
+La clase `Juego` ofrece una forma más sencilla de usar todo el conjunto.
 
 ---
 
-## Autor
+## 👤 Autor
 
 **Alejandro Ortega Mendoza**  
-Grado en Ingeniería Informática  
-Universidad de Castilla-La Mancha
+Estudiante de Ingeniería Informática  
+Proyecto realizado para la asignatura de **Diseño de Software**.
+
+---
+
+<div align="center">
+
+### 🧩 Laberinto26
+
+**Versión 3.0**
+
+</div>
