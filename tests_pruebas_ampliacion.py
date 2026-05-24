@@ -31,6 +31,8 @@ def prueba_comportamiento_mapa_aleatorio():
     for _ in range(10):
         laberinto = juego.fabricarMapaAleatorio("Mapa aleatorio ampliado")
         assert 7 <= len(laberinto._habitaciones) <= 12
+        assert laberinto.mapa_json["tipo"] == "generado_desde_json"
+        assert len(laberinto.mapa_json["habitaciones"]) == len(laberinto._habitaciones)
         assert laberinto.inicio is not None
         assert laberinto.salida is not None
         assert laberinto.inicio.num in laberinto.ruta_segura
@@ -38,7 +40,7 @@ def prueba_comportamiento_mapa_aleatorio():
         assert len(laberinto.ruta_segura) >= 2
         assert 2 <= len(laberinto.bichos) <= 4
         assert contar_bombas(laberinto) >= 1
-    print("OK - mapas aleatorios jugables generados")
+    print("OK - mapas aleatorios jugables generados desde JSON con Builder")
 
 
 def prueba_builder_json_director():

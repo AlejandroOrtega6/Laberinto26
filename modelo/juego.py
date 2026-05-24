@@ -200,9 +200,8 @@ class Juego:
         return self.fabricarMapaAleatorio()
 
     def fabricarMapaAleatorio(self, nombre_mapa: str | None=None) -> Laberinto:
-        mapa_json = self.cargar_mapa_json(nombre_mapa)
-        config = mapa_json.get('configuracion', {})
-        laberinto = self.fabricarLaberinto()
+        mapa_base = self.cargar_mapa_json(nombre_mapa)
+        config = mapa_base.get('configuracion', {})
         direcciones = [(NORTE, (0, -1)), (SUR, (0, 1)), (ESTE, (1, 0)), (OESTE, (-1, 0))]
         habitaciones_min = int(config.get('habitaciones_min', 7))
         habitaciones_max = int(config.get('habitaciones_max', 12))
@@ -218,7 +217,7 @@ class Juego:
             opciones = []
             for _orientacion, (dx, dy) in direcciones:
                 nueva = (base[0] + dx, base[1] + dy)
-                if nueva not in ocupadas and -4 <= nueva[0] <= 4 and (-4 <= nueva[1] <= 4):
+                if nueva not in ocupadas and -4 <= nueva[0] <= 4 and -4 <= nueva[1] <= 4:
                     opciones.append(nueva)
             if not opciones:
                 continue
@@ -234,6 +233,7 @@ class Juego:
                 distancia += 1
                 actual = padre[actual]
             return distancia
+
         salida_coord = max(coords, key=distancia_al_inicio)
         ruta_segura = []
         actual = salida_coord
@@ -243,18 +243,12 @@ class Juego:
                 break
             actual = padre[actual]
         ruta_segura.reverse()
+
         resto = [c for c in coords if c not in ruta_segura]
         random.shuffle(resto)
         ordenadas = ruta_segura + resto
-        coord_a_habitacion = {}
-        for numero, coord in enumerate(ordenadas, start=1):
-            habitacion = self.fabricarHabitacion(numero, Cuadrado(numero))
-            self.ponerParedes(habitacion)
-            laberinto.Add(habitacion)
-            coord_a_habitacion[coord] = habitacion
-        ruta_edges = set()
-        for i in range(len(ruta_segura) - 1):
-            ruta_edges.add(frozenset((ruta_segura[i], ruta_segura[i + 1])))
+        coord_a_num = {coord: numero for numero, coord in enumerate(ordenadas, start=1)}
+        num_a_coord = {numero: coord for coord, numero in coord_a_num.items()}
 
         def orientacion_entre(origen, destino):
             dx = destino[0] - origen[0]
@@ -268,31 +262,36 @@ class Juego:
             if dx == 0 and dy == -1:
                 return NORTE
             return None
-        conexiones = set()
-        aristas_arbol = []
-        for hijo_coord, padre_coord in padre.items():
-            clave = frozenset((padre_coord, hijo_coord))
-            aristas_arbol.append((padre_coord, hijo_coord, clave))
+
+        ruta_edges = {frozenset((ruta_segura[i], ruta_segura[i + 1])) for i in range(len(ruta_segura) - 1)}
+        aristas_arbol = [(padre_coord, hijo_coord, frozenset((padre_coord, hijo_coord))) for hijo_coord, padre_coord in padre.items()]
         candidatas_bomba = [arista for arista in aristas_arbol if arista[2] not in ruta_edges]
         if len(candidatas_bomba) < 2:
             candidatas_bomba += [arista for arista in aristas_arbol if arista[2] in ruta_edges and arista[0] != (0, 0)]
         random.shuffle(candidatas_bomba)
-        cantidad_bombas = min(len(candidatas_bomba), random.randint(int(config.get('bombas_min', 2)), int(config.get('bombas_max', 3))))
+        cantidad_bombas = min(
+            len(candidatas_bomba),
+            random.randint(int(config.get('bombas_min', 2)), int(config.get('bombas_max', 3)))
+        )
         aristas_bomba = {arista[2] for arista in candidatas_bomba[:cantidad_bombas]}
+
+        conexiones = set()
+        puertas_json = []
         for hijo_coord, padre_coord in padre.items():
-            h_padre = coord_a_habitacion[padre_coord]
-            h_hijo = coord_a_habitacion[hijo_coord]
             orientacion = orientacion_entre(padre_coord, hijo_coord)
             if orientacion is None:
                 continue
             clave = frozenset((padre_coord, hijo_coord))
             conexiones.add(clave)
-            if clave in aristas_bomba:
-                self.conectarConBomba(h_padre, orientacion, h_hijo, abierta=True)
-            elif clave in ruta_edges:
-                self.conectar(h_padre, orientacion, h_hijo, abierta=True)
-            else:
-                self.conectar(h_padre, orientacion, h_hijo, abierta=random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65)))
+            puertas_json.append({
+                'desde': coord_a_num[padre_coord],
+                'orientacion': orientacion.nombre(),
+                'hasta': coord_a_num[hijo_coord],
+                'orientacion_destino': orientacion.opuesta().nombre(),
+                'abierta': bool(clave in ruta_edges or clave in aristas_bomba or random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65))),
+                'bomba': bool(clave in aristas_bomba)
+            })
+
         for coord in list(ocupadas):
             for orientacion, (dx, dy) in direcciones:
                 vecino = (coord[0] + dx, coord[1] + dy)
@@ -304,51 +303,73 @@ class Juego:
                 if random.random() > float(config.get('porcentaje_conexiones_extra', 0.2)):
                     continue
                 conexiones.add(clave)
-                h1 = coord_a_habitacion[coord]
-                h2 = coord_a_habitacion[vecino]
-                if clave in ruta_edges:
-                    self.conectar(h1, orientacion, h2, abierta=True)
-                elif random.random() < float(config.get('probabilidad_bomba_extra', 0.25)):
-                    self.conectarConBomba(h1, orientacion, h2, abierta=True)
-                else:
-                    self.conectar(h1, orientacion, h2, abierta=random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65)))
-        def contar_bombas_colocadas():
-            total = 0
-            vistas = set()
-            for habitacion in coord_a_habitacion.values():
-                for orientacion, _desplazamiento in direcciones:
-                    lado = habitacion.obtener_lado(orientacion)
-                    if isinstance(lado, Bomba) and id(lado) not in vistas:
-                        vistas.add(id(lado))
-                        total += 1
-            return total
-        coord_a_habitacion[0, 0].Add(self.fabricarArmario('Armario del inicio'))
-        habitaciones_ruta = [coord_a_habitacion[c] for c in ruta_segura]
+                puertas_json.append({
+                    'desde': coord_a_num[coord],
+                    'orientacion': orientacion.nombre(),
+                    'hasta': coord_a_num[vecino],
+                    'orientacion_destino': orientacion.opuesta().nombre(),
+                    'abierta': bool(clave in ruta_edges or random.random() < float(config.get('probabilidad_puerta_secundaria_abierta', 0.65))),
+                    'bomba': bool(clave not in ruta_edges and random.random() < float(config.get('probabilidad_bomba_extra', 0.25)))
+                })
+
+        habitaciones_ruta = [coord_a_num[c] for c in ruta_segura]
         ruta_intermedia = habitaciones_ruta[1:-1]
-        laterales = [h for h in coord_a_habitacion.values() if h not in habitaciones_ruta and h != coord_a_habitacion[salida_coord]]
+        laterales = [coord_a_num[c] for c in coords if coord_a_num[c] not in habitaciones_ruta and c != salida_coord]
         candidatas = []
         if ruta_intermedia:
             candidatas.append(random.choice(ruta_intermedia))
         random.shuffle(laterales)
         candidatas.extend(laterales)
         if len(candidatas) < 2:
-            candidatas.extend([h for h in coord_a_habitacion.values() if h != coord_a_habitacion[0, 0] and h != coord_a_habitacion[salida_coord] and (h not in candidatas)])
-        nombres = ['Bicho rojo', 'Bicho azul', 'Bicho verde', 'Bicho morado', 'Bicho naranja']
-        cantidad_bichos = min(len(candidatas), random.randint(int(config.get('bichos_min', 2)), int(config.get('bichos_max', 4))))
-        for i, habitacion in enumerate(candidatas[:cantidad_bichos]):
-            if habitacion in ruta_intermedia:
-                modo = Agresivo()
+            candidatas.extend([n for n in coord_a_num.values() if n not in candidatas and n not in (coord_a_num[(0, 0)], coord_a_num[salida_coord])])
+
+        nombres_bichos = ['Bicho rojo', 'Bicho azul', 'Bicho verde', 'Bicho morado', 'Bicho naranja']
+        cantidad_bichos = min(
+            len(candidatas),
+            random.randint(int(config.get('bichos_min', 2)), int(config.get('bichos_max', 4)))
+        )
+        bichos_json = []
+        for i, numero_habitacion in enumerate(candidatas[:cantidad_bichos]):
+            if numero_habitacion in ruta_intermedia:
+                modo = 'agresivo'
                 vidas = 2
             else:
-                modo = Agresivo() if random.random() < 0.45 else Perezoso()
-                vidas = 2 if isinstance(modo, Agresivo) else 1
-            laberinto.agregar_bicho(self.fabricarBicho(nombres[i % len(nombres)], vidas, 1, modo, habitacion))
-        laberinto.fijar_inicio(coord_a_habitacion[0, 0].num)
-        laberinto.fijar_salida(coord_a_habitacion[salida_coord].num)
-        laberinto.posiciones_mapa = {habitacion.num: coord for coord, habitacion in coord_a_habitacion.items()}
-        laberinto.ruta_segura = [coord_a_habitacion[c].num for c in ruta_segura]
-        laberinto.nombre_mapa = mapa_json.get('nombre', 'Mapa aleatorio')
-        laberinto.mapa_json = mapa_json
+                modo = 'agresivo' if random.random() < 0.45 else 'perezoso'
+                vidas = 2 if modo == 'agresivo' else 1
+            bichos_json.append({
+                'nombre': nombres_bichos[i % len(nombres_bichos)],
+                'vidas': vidas,
+                'poder': 1,
+                'modo': modo,
+                'habitacion': numero_habitacion
+            })
+
+        mapa_generado = {
+            'id': mapa_base.get('id', 'aleatorio_generado'),
+            'nombre': mapa_base.get('nombre', 'Mapa aleatorio'),
+            'tipo': 'generado_desde_json',
+            'descripcion': mapa_base.get('descripcion', 'Mapa aleatorio construido desde una configuración JSON.'),
+            'configuracion': config,
+            'inicio': coord_a_num[(0, 0)],
+            'salida': coord_a_num[salida_coord],
+            'habitaciones': [
+                {'numero': numero, 'forma': 'cuadrado'}
+                for numero in sorted(num_a_coord)
+            ],
+            'puertas': puertas_json,
+            'armarios': [
+                {'habitacion': coord_a_num[(0, 0)], 'nombre': 'Armario del inicio'}
+            ],
+            'bichos': bichos_json,
+            'posiciones_mapa': {str(numero): list(coord) for numero, coord in num_a_coord.items()},
+            'ruta_segura': habitaciones_ruta
+        }
+
+        builder = ConcreteBuilder(self)
+        director = DirectorJSON(builder)
+        director.Construct(mapa_generado)
+        laberinto = builder.GetProduct()
+        laberinto.mapa_json = mapa_generado
         return laberinto
 
     def fabricarLab4Hab(self) -> Laberinto:
@@ -378,9 +399,10 @@ class Juego:
                 break
 
     def preparar(self):
-        self.laberinto = self.fabricarMapaAleatorio()
+        nombre_mapa = getattr(self, 'mapa_seleccionado', None)
+        self.laberinto = self.fabricarLaberintoPorNombre(nombre_mapa) if nombre_mapa else self.fabricarMapaAleatorio()
         self.personaje.posicion = self.laberinto.inicio
-        print('Laberinto preparado.')
+        print(f"Laberinto preparado: {getattr(self.laberinto, 'nombre_mapa', 'Mapa')}.")
         self.mostrar_ayuda()
 
     def finalizar(self):

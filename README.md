@@ -50,6 +50,7 @@ Esta versión mejora el juego para que cada partida sea diferente.
 La versión 3.0 incluye:
 - generación aleatoria de laberintos,
 - configuración mediante JSON,
+- construcción de laberintos mediante Builder y DirectorJSON,
 - ampliación de la interfaz gráfica,
 - nuevas pruebas funcionales,
 - mejoras en la estructura del proyecto.
@@ -73,6 +74,8 @@ La versión 3.0 incluye:
 - Se mantiene la versión por consola.
 - Se mantiene la versión visual con botones y registro de eventos.
 - La configuración de la ampliación se guarda en `datos/laberintos.json` y es leída por el juego.
+- La consola permite seleccionar los mapas disponibles en el JSON.
+- Los mapas se construyen a partir de datos JSON usando `ConcreteBuilder` y `DirectorJSON`.
 
 ---
 
@@ -129,6 +132,14 @@ Este diagrama resume la funcionalidad nueva de la versión 3.0: generación de m
 
 ---
 
+### Diagrama de secuencia
+
+Este diagrama muestra la interacción entre la consola/interfaz, `Juego`, el archivo `datos/laberintos.json`, `DirectorJSON`, `ConcreteBuilder` y el `Laberinto` construido.
+
+![Diagrama de secuencia JSON Builder](docs/imagenes/diagrama_secuencia_json_builder.png)
+
+---
+
 ## 📁 Estructura del proyecto
 
 ```text
@@ -138,10 +149,14 @@ Laberinto26/
 ├── README.md
 ├── .gitignore
 ├── tests_pruebas_ampliacion.py
+├── tests/
+│   ├── __init__.py
+│   └── test_ampliacion.py
 ├── docs/
 │   └── imagenes/
 │       ├── diagrama_completo_funcionalidad_nueva.png
-│       └── diagrama_funcionalidad_nueva.png
+│       ├── diagrama_funcionalidad_nueva.png
+│       └── diagrama_secuencia_json_builder.png
 ├── datos/
 │   └── laberintos.json
 ├── interfaz/
@@ -186,9 +201,11 @@ Laberinto26/
 - `main_gui.py`: punto de entrada de la versión visual.
 - `main.py`: punto de entrada de la versión por consola.
 - `datos/laberintos.json`: configuración de la ampliación y parámetros del mapa aleatorio.
-- `tests_pruebas_ampliacion.py`: pruebas básicas de la ampliación.
+- `tests_pruebas_ampliacion.py`: ejecución directa de las pruebas de la ampliación.
+- `tests/test_ampliacion.py`: proyecto de test con `unittest`.
 - `docs/imagenes/diagrama_completo_funcionalidad_nueva.png`: diagrama completo actualizado del proyecto.
 - `docs/imagenes/diagrama_funcionalidad_nueva.png`: diagrama específico de la funcionalidad nueva.
+- `docs/imagenes/diagrama_secuencia_json_builder.png`: diagrama de secuencia de la construcción del laberinto desde JSON con Builder.
 
 ---
 
@@ -204,6 +221,20 @@ python main.py
 
 ```bash
 python main_gui.py
+```
+
+### Pruebas de la ampliación
+
+Ejecución directa:
+
+```bash
+python tests_pruebas_ampliacion.py
+```
+
+Proyecto de test con `unittest`:
+
+```bash
+python -m unittest -v
 ```
 
 ---
@@ -368,6 +399,8 @@ Representa acciones que puede ejecutar el jugador.
 Ejemplos:
 
 - `Abrir`
+- `Cerrar`
+- `Entrar`
 - `Mover`
 - `Atacar`
 - `Salir`
@@ -470,6 +503,37 @@ norte
 atacar
 mapa
 ```
+
+---
+
+### Builder
+
+Se usa para construir laberintos a partir de datos externos.
+
+Ejemplos:
+
+- `Builder`
+- `ConcreteBuilder`
+- `Director`
+- `DirectorJSON`
+
+El archivo `datos/laberintos.json` define los datos del mapa y `DirectorJSON` ordena al builder la creación de habitaciones, puertas, bombas, túneles, armarios y bichos.
+
+---
+
+### Template Method
+
+Se usa en la clase `Modo`.
+
+La clase base `Modo` define el algoritmo general de actuación de un bicho en el método `actua()`. Las subclases `Agresivo` y `Perezoso` solo redefinen pasos concretos, como decidir si deben caminar y cómo se desplazan.
+
+---
+
+### Proxy
+
+Se usa con `ProxyLaberinto` para representar un laberinto que puede cargarse de forma diferida.
+
+El proxy retrasa la creación real del laberinto hasta que se necesita acceder a él.
 
 ---
 
